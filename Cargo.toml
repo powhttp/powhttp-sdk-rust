@@ -1,0 +1,21 @@
+[package]
+name = "powhttp-sdk"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Official SDK for building powhttp extensions in Rust."
+license = "MIT"
+repository = "https://github.com/powhttp/powhttp-sdk-rust"
+readme = "README.md"
+keywords = ["powhttp", "http", "proxy", "extensions", "sdk"]
+categories = ["network-programming", "development-tools"]
+
+[dependencies]
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+hex = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["io-std", "macros", "rt", "sync"] }
+tokio-jrpc = "0.1"
+ulid = { version = "1", features = ["serde"] }
+url = { version = "2", features = ["serde"] }
