@@ -1,5 +1,8 @@
 # powhttp-sdk
 
+[![docs.rs](https://img.shields.io/docsrs/powhttp-sdk?logo=rust)](https://docs.rs/powhttp-sdk)
+[![crates.io](https://img.shields.io/crates/v/powhttp-sdk?logo=rust)](https://crates.io/crates/powhttp-sdk)
+
 Official SDK for building [powhttp](https://powhttp.com/) extensions in Rust.
 
 Extensions run as separate processes that communicate with powhttp over JSON-RPC.
