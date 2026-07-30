@@ -35,6 +35,10 @@ where
         .method("context_menu/call_item_handler_single", handlers::context_menu::call_item_handler_single)
         .method("context_menu/call_item_handler_multi", handlers::context_menu::call_item_handler_multi)
         .method("overview/get_field_value", handlers::overview::get_field_value)
+        .method("inspector/is_request_tab_visible", handlers::inspector::is_request_tab_visible)
+        .method("inspector/is_response_tab_visible", handlers::inspector::is_response_tab_visible)
+        .method("inspector/get_request_tab_content", handlers::inspector::get_request_tab_content)
+        .method("inspector/get_response_tab_content", handlers::inspector::get_response_tab_content)
         .method("proxy_server/call_connect_handler", handlers::proxy_server::call_connect_handler);
 
     let client = app.client_handle();

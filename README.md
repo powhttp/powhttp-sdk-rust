@@ -7,17 +7,29 @@ Official SDK for building [powhttp](https://powhttp.com/) extensions in Rust.
 
 Extensions run as separate processes that communicate with powhttp over JSON-RPC.
 The SDK handles the runtime lifecycle and provides an `ExtensionHandle` for
-registering context-menu items, overview fields, connect handlers and querying
-session data.
+registering context-menu items, overview fields, inspector tabs, connect handlers
+and querying session data.
 
 ## Example
 
 ```rust
+use base64::prelude::{BASE64_URL_SAFE_NO_PAD, Engine};
 use powhttp_sdk::{
     run, Error, ExtensionHandle,
     ContextMenuItemSingle, SingleEntryContext,
-    OverviewField,
+    OverviewField, MessageTab, TabContent,
 };
+use powhttp_sdk::sessions::SessionEntry;
+
+fn bearer_token(entry: &SessionEntry) -> Option<&str> {
+    entry.request.headers.get("authorization")?.strip_prefix("Bearer ")
+}
+
+fn decode_jwt_payload(token: &str) -> Option<String> {
+    let payload = token.split('.').nth(1)?;
+    let bytes = BASE64_URL_SAFE_NO_PAD.decode(payload).ok()?;
+    String::from_utf8(bytes).ok()
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -54,6 +66,35 @@ async fn main() -> Result<(), Error> {
                 Ok(size)
             },
         )).await?;
+
+        // Add a request tab that decodes the JWT sent in the Authorization header,
+        // shown only for requests that carry a bearer token
+        handle.add_request_tab(
+            MessageTab::new(
+                "jwt",
+                "JWT",
+                async |ctx: SingleEntryContext, handle: ExtensionHandle| {
+                    let entry = handle
+                        .get_session_entry(ctx.session_id, ctx.entry_id)
+                        .await?;
+
+                    let payload = entry
+                        .as_ref()
+                        .and_then(bearer_token)
+                        .and_then(decode_jwt_payload)
+                        .unwrap_or_default();
+
+                    Ok(TabContent::json(payload))
+                },
+            )
+            .visible_when(async |ctx: SingleEntryContext, handle: ExtensionHandle| {
+                let entry = handle
+                    .get_session_entry(ctx.session_id, ctx.entry_id)
+                    .await?;
+
+                Ok(entry.as_ref().and_then(bearer_token).is_some())
+            }),
+        ).await?;
 
         Ok(())
     })

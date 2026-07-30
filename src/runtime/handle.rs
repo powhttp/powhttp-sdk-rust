@@ -7,6 +7,7 @@ use tokio_jrpc::ClientHandle;
 use ulid::Ulid;
 use crate::context_menu::{ContextMenuNodeMulti, ContextMenuNodeSingle};
 use crate::error::Error;
+use crate::inspector::MessageTab;
 use crate::proxy_server::{ConnectContext, ConnectResult};
 use crate::http2::Http2Event;
 use crate::overview::OverviewNode;
@@ -140,6 +141,62 @@ impl ExtensionHandle {
         ).await?;
 
         self.state.remove_overview_handler(&[field_id]).await;
+        Ok(())
+    }
+
+    /// Adds a tab to the request section of the Inspector.
+    ///
+    /// Calls `inspector/add_request_tab`.
+    pub async fn add_request_tab(&self, tab: MessageTab) -> Result<(), Error> {
+        let (tab_id, handlers) = tab.extract_handlers();
+
+        self.state.insert_request_tab_handlers(tab_id.clone(), handlers).await;
+
+        if let Err(err) = self.client.request::<()>("inspector/add_request_tab", &tab).await {
+            self.state.remove_request_tab_handlers(&tab_id).await;
+            return Err(err.into());
+        }
+        Ok(())
+    }
+
+    /// Removes a request tab by its `tab_id`.
+    ///
+    /// Calls `inspector/remove_request_tab`.
+    pub async fn remove_request_tab(&self, tab_id: &str) -> Result<(), Error> {
+        self.client.request::<()>(
+            "inspector/remove_request_tab",
+            MessageTabRef { tab_id },
+        ).await?;
+
+        self.state.remove_request_tab_handlers(tab_id).await;
+        Ok(())
+    }
+
+    /// Adds a tab to the response section of the Inspector.
+    ///
+    /// Calls `inspector/add_response_tab`.
+    pub async fn add_response_tab(&self, tab: MessageTab) -> Result<(), Error> {
+        let (tab_id, handlers) = tab.extract_handlers();
+
+        self.state.insert_response_tab_handlers(tab_id.clone(), handlers).await;
+
+        if let Err(err) = self.client.request::<()>("inspector/add_response_tab", &tab).await {
+            self.state.remove_response_tab_handlers(&tab_id).await;
+            return Err(err.into());
+        }
+        Ok(())
+    }
+
+    /// Removes a response tab by its `tab_id`.
+    ///
+    /// Calls `inspector/remove_response_tab`.
+    pub async fn remove_response_tab(&self, tab_id: &str) -> Result<(), Error> {
+        self.client.request::<()>(
+            "inspector/remove_response_tab",
+            MessageTabRef { tab_id },
+        ).await?;
+
+        self.state.remove_response_tab_handlers(tab_id).await;
         Ok(())
     }
 
@@ -333,6 +390,12 @@ struct ContextMenuItemRef<'a> {
 #[serde(rename_all = "camelCase")]
 struct OverviewFieldRef<'a> {
     field_id: &'a str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MessageTabRef<'a> {
+    tab_id: &'a str,
 }
 
 #[derive(Serialize)]

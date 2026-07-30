@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::pin::Pin;
 use tokio::sync::{Mutex, RwLock, oneshot};
+use crate::inspector::TabContent;
 use crate::proxy_server::{ConnectContext, ConnectResult};
 use crate::runtime::handlers::{MultiEntryContext, SingleEntryContext};
 use crate::runtime::handle::ExtensionHandle;
@@ -12,6 +13,14 @@ type Handler<P, R> = Arc<dyn Fn(P, ExtensionHandle) -> BoxFuture<Result<R, tokio
 pub(crate) type ContextMenuHandler<C> = Handler<C, ()>;
 pub(crate) type OverviewHandler = Handler<SingleEntryContext, Option<String>>;
 pub(crate) type ConnectHandler = Handler<ConnectContext, ConnectResult>;
+pub(crate) type MessageTabContentHandler = Handler<SingleEntryContext, TabContent>;
+pub(crate) type MessageTabVisibilityHandler = Handler<SingleEntryContext, bool>;
+
+#[derive(Clone)]
+pub(crate) struct MessageTabHandlers {
+    pub(crate) content: MessageTabContentHandler,
+    pub(crate) visibility: Option<MessageTabVisibilityHandler>,
+}
 
 #[derive(Clone)]
 pub(crate) struct ShutdownHandle {
@@ -38,6 +47,8 @@ pub(crate) struct ExtensionState {
     context_menu_multi_handlers: RwLock<HashMap<String, ContextMenuHandler<MultiEntryContext>>>,
     overview_handlers: RwLock<HashMap<String, OverviewHandler>>,
     connect_handlers: RwLock<HashMap<String, ConnectHandler>>,
+    request_tab_handlers: RwLock<HashMap<String, MessageTabHandlers>>,
+    response_tab_handlers: RwLock<HashMap<String, MessageTabHandlers>>,
 }
 
 impl ExtensionState {
@@ -48,6 +59,8 @@ impl ExtensionState {
             context_menu_multi_handlers: RwLock::new(HashMap::new()),
             overview_handlers: RwLock::new(HashMap::new()),
             connect_handlers: RwLock::new(HashMap::new()),
+            request_tab_handlers: RwLock::new(HashMap::new()),
+            response_tab_handlers: RwLock::new(HashMap::new()),
         }
     }
 
@@ -86,6 +99,14 @@ impl ExtensionState {
         self.connect_handlers.write().await.insert(handler_id, handler);
     }
 
+    pub(crate) async fn insert_request_tab_handlers(&self, tab_id: String, handlers: MessageTabHandlers) {
+        self.request_tab_handlers.write().await.insert(tab_id, handlers);
+    }
+
+    pub(crate) async fn insert_response_tab_handlers(&self, tab_id: String, handlers: MessageTabHandlers) {
+        self.response_tab_handlers.write().await.insert(tab_id, handlers);
+    }
+
     pub(crate) async fn remove_context_menu_single_handler(&self, handler_ids: &[impl AsRef<str>]) {
         let mut handlers = self.context_menu_single_handlers.write().await;
         for id in handler_ids {
@@ -109,6 +130,14 @@ impl ExtensionState {
 
     pub(crate) async fn remove_connect_handler(&self, handler_id: &str) {
         self.connect_handlers.write().await.remove(handler_id);
+    }
+
+    pub(crate) async fn remove_request_tab_handlers(&self, tab_id: &str) {
+        self.request_tab_handlers.write().await.remove(tab_id);
+    }
+
+    pub(crate) async fn remove_response_tab_handlers(&self, tab_id: &str) {
+        self.response_tab_handlers.write().await.remove(tab_id);
     }
 
     pub(crate) async fn get_context_menu_single_handler(&self, handler_id: &str) -> Option<ContextMenuHandler<SingleEntryContext>> {
@@ -140,6 +169,22 @@ impl ExtensionState {
             .read()
             .await
             .get(handler_id)
+            .cloned()
+    }
+
+    pub(crate) async fn get_request_tab_handlers(&self, tab_id: &str) -> Option<MessageTabHandlers> {
+        self.request_tab_handlers
+            .read()
+            .await
+            .get(tab_id)
+            .cloned()
+    }
+
+    pub(crate) async fn get_response_tab_handlers(&self, tab_id: &str) -> Option<MessageTabHandlers> {
+        self.response_tab_handlers
+            .read()
+            .await
+            .get(tab_id)
             .cloned()
     }
 }

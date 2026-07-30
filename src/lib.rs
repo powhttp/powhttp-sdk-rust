@@ -2,7 +2,7 @@
 //!
 //! An extension is started via [`run`], which provides an [`ExtensionHandle`] for
 //! interacting with powhttp by registering context-menu items, overview
-//! fields, connect handlers and querying session data.
+//! fields, inspector tabs, connect handlers and querying session data.
 //!
 //! # Quick start
 //!
@@ -36,6 +36,8 @@ pub mod proxy_server;
 pub mod context_menu;
 /// Overview fields and sections.
 pub mod overview;
+/// Request and response tabs displayed in the Inspector.
+pub mod inspector;
 /// Small shared types used across multiple modules.
 pub mod shared;
 
@@ -44,6 +46,7 @@ pub use error::Error;
 pub use runtime::handle::ExtensionHandle;
 pub use runtime::handlers::{SingleEntryContext, MultiEntryContext};
 pub use overview::{OverviewField, OverviewSection};
+pub use inspector::{Language, MessageTab, TabContent};
 pub use context_menu::{
     ContextMenuItemSingle,
     ContextMenuItemMulti,

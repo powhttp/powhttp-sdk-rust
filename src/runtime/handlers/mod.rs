@@ -1,6 +1,7 @@
 use ulid::Ulid;
 
 pub(crate) mod context_menu;
+pub(crate) mod inspector;
 pub(crate) mod overview;
 pub(crate) mod proxy_server;
 
